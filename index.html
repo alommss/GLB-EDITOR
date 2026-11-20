@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101319">
+  <title>GLB Studio — 3D Viewer & Editor</title>
+  <link rel="stylesheet" href="./style.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="GLB Studio home"><span class="brand-mark">G</span><span>GLB <b>STUDIO</b></span></a>
+    <div class="top-actions">
+      <button class="btn btn-quiet" id="openBtn">＋ <span>Import model</span></button>
+      <button class="btn btn-primary" id="exportBtn" disabled>↓ <span>Export</span></button>
+    </div>
+  </header>
+
+  <main class="app-shell">
+    <aside class="sidebar">
+      <section class="side-section">
+        <div class="section-heading"><span>PROJECT</span><span class="muted" id="modelCount">0 MODEL</span></div>
+        <label class="dropzone" id="dropzone" for="fileInput">
+          <span class="upload-icon">↑</span>
+          <strong>Drop model files here</strong>
+          <small>atau <u>pilih file</u> dari perangkat</small>
+          <small class="file-types">GLB · GLTF · BIN · PNG · JPG</small>
+        </label>
+        <input id="fileInput" type="file" accept=".glb,.gltf,.bin,.png,.jpg,.jpeg,.webp" multiple hidden>
+        <div id="modelList" class="model-list"><div class="empty-list">Belum ada model.</div></div>
+      </section>
+
+      <section class="side-section">
+        <div class="section-heading">SCENE</div>
+        <div class="control-row"><label for="bgColor">Background</label><input id="bgColor" type="color" value="#171c25"></div>
+        <div class="control-row"><label for="lightMode">Lighting</label>
+          <select id="lightMode"><option value="studio">Studio</option><option value="bright">Bright</option><option value="soft">Soft</option></select>
+        </div>
+        <label class="toggle-row"><span>Grid</span><input type="checkbox" id="gridToggle" checked><i></i></label>
+        <label class="toggle-row"><span>Axes</span><input type="checkbox" id="axesToggle"><i></i></label>
+      </section>
+
+      <section class="side-section editor-section">
+        <div class="section-heading">OBJECT EDITOR</div>
+        <div id="selectionName" class="selection-name">Pilih objek di scene</div>
+        <div class="transform-group">
+          <div class="group-label">POSITION</div>
+          <div class="xyz-grid">
+            <label>X<input type="number" step="0.1" id="posX" disabled></label>
+            <label>Y<input type="number" step="0.1" id="posY" disabled></label>
+            <label>Z<input type="number" step="0.1" id="posZ" disabled></label>
+          </div>
+        </div>
+        <div class="transform-group">
+          <div class="group-label">ROTATION · DEG</div>
+          <div class="xyz-grid">
+            <label>X<input type="number" step="1" id="rotX" disabled></label>
+            <label>Y<input type="number" step="1" id="rotY" disabled></label>
+            <label>Z<input type="number" step="1" id="rotZ" disabled></label>
+          </div>
+        </div>
+        <div class="transform-group">
+          <div class="group-label">SCALE</div>
+          <div class="xyz-grid">
+            <label>X<input type="number" step="0.1" id="scaleX" disabled></label>
+            <label>Y<input type="number" step="0.1" id="scaleY" disabled></label>
+            <label>Z<input type="number" step="0.1" id="scaleZ" disabled></label>
+          </div>
+        </div>
+        <div class="transform-actions"><button class="btn btn-small" id="applyTransform" disabled>Apply</button><button class="btn btn-small" id="resetTransform" disabled>Reset</button></div><div class="transform-actions"><button class="btn btn-small" id="undoBtn" disabled>↶ Undo</button><button class="btn btn-small" id="redoBtn" disabled>↷ Redo</button></div>
+        <div class="transform-group material-group">
+          <div class="group-label">MATERIAL</div>
+          <div class="control-row"><label for="matColor">Base color</label><input type="color" id="matColor" value="#ffffff" disabled></div>
+          <div class="control-row"><label for="opacity">Opacity <span id="opacityValue">100%</span></label></div>
+          <input type="range" id="opacity" min="0" max="100" value="100" disabled>
+        </div>
+      </section>
+      <div class="sidebar-footer">GLB STUDIO <span>LOCAL PROCESSING</span></div>
+    </aside>
+
+    <section class="workspace">
+      <div class="viewer-toolbar">
+        <div class="viewer-title"><span class="live-dot"></span><span id="viewerLabel">3D VIEWPORT</span></div>
+        <div class="viewer-tools">
+          <button class="icon-btn" id="resetCamera" title="Reset camera">⌖</button>
+          <button class="icon-btn" id="screenshotBtn" title="Screenshot" disabled>▣</button>
+          <button class="icon-btn" id="fullscreenBtn" title="Fullscreen">⛶</button>
+        </div>
+      </div>
+      <div class="viewer-wrap" id="viewerWrap">
+        <div id="viewer"></div>
+        <div class="welcome" id="welcome">
+          <div class="welcome-cube">◇</div>
+          <h1>Bring your 3D models to life.</h1>
+          <p>Import file GLB atau GLTF untuk mulai melihat dan mengedit model.</p>
+          <button class="btn btn-primary" id="welcomeImport">↑ &nbsp; Import 3D model</button>
+          <small>Drag & drop file ke area ini</small>
+        </div>
+        <div class="loading-overlay" id="loading"><div class="spinner"></div><span>Memproses model…</span></div>
+        <div class="viewer-hint">DRAG TO ORBIT <span>·</span> SCROLL TO ZOOM <span>·</span> RIGHT-DRAG TO PAN</div>
+      </div>
+      <div class="bottom-panel">
+        <div class="stats-head"><span>MODEL STATISTICS</span><span id="modelDimensions">DIMENSIONS —</span></div>
+        <div class="stats-grid">
+          <div class="stat"><strong id="statMeshes">—</strong><span>MESHES</span></div>
+          <div class="stat"><strong id="statVertices">—</strong><span>VERTICES</span></div>
+          <div class="stat"><strong id="statTriangles">—</strong><span>TRIANGLES</span></div>
+          <div class="stat"><strong id="statMaterials">—</strong><span>MATERIALS</span></div>
+          <div class="stat file-stat"><strong id="statFile">—</strong><span>ACTIVE FILE</span></div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <div class="toast" id="toast" role="status"></div>
+  <script type="module" src="./script.js"></script>
+</body>
+</html>

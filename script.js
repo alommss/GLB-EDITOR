@@ -19,10 +19,24 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = .07;
 controls.target.set(0, .7, 0);
-const grid = new THREE.GridHelper(10, 20, 0x53634b, 0x303945);
+let gridSize = 100;
+let grid = new THREE.GridHelper(gridSize, gridSize, 0x718b60, 0x303945);
+grid.position.y = 0;
 scene.add(grid);
-const axes = new THREE.AxesHelper(2);
-axes.visible = false; scene.add(axes);
+const axes = new THREE.Group();
+scene.add(axes);
+let axisLength = 10;
+function rebuildAxes(){
+  axes.children.forEach(child=>{child.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.dispose());}});});
+  axes.clear();
+  const defs=[['axisXToggle',0xff5555,new THREE.Vector3(1,0,0)],['axisYToggle',0x65d879,new THREE.Vector3(0,1,0)],['axisZToggle',0x5599ff,new THREE.Vector3(0,0,1)]];
+  defs.forEach(([id,color,dir])=>{
+    if(!$(id).checked)return;
+    const arrow=new THREE.ArrowHelper(dir,new THREE.Vector3(0,0,0),axisLength,color,Math.max(.25,axisLength*.035),Math.max(.12,axisLength*.018));
+    axes.add(arrow);
+  });
+}
+rebuildAxes();
 const ambient = new THREE.HemisphereLight(0xffffff, 0x657080, 2.0); scene.add(ambient);
 const keyLight = new THREE.DirectionalLight(0xffffff, 3.0); keyLight.position.set(4,7,5); scene.add(keyLight);
 const fillLight = new THREE.DirectionalLight(0xb9d6ff, 1.2); fillLight.position.set(-5,2,-4); scene.add(fillLight);
@@ -111,7 +125,7 @@ function activateModel(model) {
   $('welcome').style.display='none';$('exportBtn').disabled=false;$('screenshotBtn').disabled=false;
   $('viewerLabel').textContent=model.name.toUpperCase();
   $('selectionName').textContent='Pilih objek di scene';
-  disableEditor(); updateModelList(); collectStats(getModelRoot(model));
+  disableEditor(); updateModelList(); buildModelTree(); collectStats(getModelRoot(model));
 }
 function removeModel(model) {
   const root=getModelRoot(model);scene.remove(root);
@@ -128,7 +142,7 @@ function selectObject(obj) {
   if(!obj || !activeModel)return;
   selectedObject=obj;saveOriginal(obj);enableEditor();
   $('selectionName').textContent=obj.name || obj.type || 'Object';
-  fillTransformInputs();
+  buildModelTree(); fillTransformInputs();
   const mesh=obj.isMesh?obj:null;
   if(mesh && mesh.material){
     const mat=Array.isArray(mesh.material)?mesh.material[0]:mesh.material;
@@ -143,6 +157,31 @@ function fillTransformInputs(){
   ['rotX','rotY','rotZ'].forEach((id,i)=>$(id).value=r(o.rotation.getComponent(i)).toFixed(1));
   ['scaleX','scaleY','scaleZ'].forEach((id,i)=>$(id).value=o.scale.getComponent(i).toFixed(3));
 }
+function buildModelTree(){
+  const host=$('modelTree');host.innerHTML='';
+  if(!activeModel){host.innerHTML='<div class="tree-empty">Import model untuk melihat strukturnya.</div>';$('objectCount').textContent='0 OBJECT';return;}
+  const root=getModelRoot(activeModel);let count=0;
+  root.traverse(()=>count++);$('objectCount').textContent=`${count} OBJECT`;
+  function addNode(obj,depth,parent){
+    const row=document.createElement('div');row.className='tree-node'+(selectedObject===obj?' selected':'');
+    const indent=document.createElement('span');indent.className='tree-indent';indent.style.width=`${depth*12}px`;
+    const hasChildren=obj.children.length>0;
+    const fold=document.createElement('button');fold.className='tree-toggle';fold.textContent=hasChildren?'▾':'·';fold.disabled=!hasChildren;
+    const label=document.createElement('button');label.className='tree-select';label.textContent=obj.name||obj.type||'Object';label.title=label.textContent;
+    const type=document.createElement('span');type.className='tree-type';type.textContent=obj.isMesh?'MESH':obj.type.toUpperCase();
+    const eye=document.createElement('button');eye.className='tree-eye'+(!obj.visible?' hidden-object':'');eye.textContent=obj.visible?'◉':'○';eye.title=obj.visible?'Hide object':'Show object';
+    row.append(indent,fold,label,type,eye);parent.append(row);
+    const children=document.createElement('div');children.className='tree-children';parent.append(children);
+    obj.children.forEach(child=>addNode(child,depth+1,children));
+    fold.addEventListener('click',()=>{const closed=children.style.display==='none';children.style.display=closed?'':'none';fold.textContent=closed?'▾':'▸';});
+    label.addEventListener('click',()=>selectObject(obj));
+    eye.addEventListener('click',()=>{obj.visible=!obj.visible;eye.textContent=obj.visible?'◉':'○';eye.classList.toggle('hidden-object',!obj.visible);eye.title=obj.visible?'Hide object':'Show object';if(activeModel)collectStats(root);});
+  }
+  addNode(root,0,host);
+}
+$('expandTreeBtn').addEventListener('click',()=>document.querySelectorAll('.tree-children').forEach(el=>el.style.display=''));
+$('collapseTreeBtn').addEventListener('click',()=>document.querySelectorAll('.tree-children').forEach(el=>el.style.display='none'));
+
 const raycaster=new THREE.Raycaster(), pointer=new THREE.Vector2();
 renderer.domElement.addEventListener('pointerdown',e=>{
   if(e.button!==0)return;
@@ -180,7 +219,13 @@ $('opacity').addEventListener('input',()=>{
 });
 $('bgColor').addEventListener('input',()=>scene.background=new THREE.Color($('bgColor').value));
 $('gridToggle').addEventListener('change',e=>grid.visible=e.target.checked);
-$('axesToggle').addEventListener('change',e=>axes.visible=e.target.checked);
+$('gridSize').addEventListener('input',e=>{
+  gridSize=Number(e.target.value);$('gridSizeValue').textContent=gridSize;
+  scene.remove(grid);grid.geometry.dispose();(Array.isArray(grid.material)?grid.material:[grid.material]).forEach(m=>m.dispose());
+  grid=new THREE.GridHelper(gridSize,gridSize,0x718b60,0x303945);grid.position.y=0;grid.visible=$('gridToggle').checked;scene.add(grid);
+});
+['axisXToggle','axisYToggle','axisZToggle'].forEach(id=>$(id).addEventListener('change',rebuildAxes));
+$('axisLength').addEventListener('input',e=>{axisLength=Number(e.target.value);$('axisLengthValue').textContent=axisLength;rebuildAxes();});
 $('lightMode').addEventListener('change',e=>{
   const mode=e.target.value;
   ambient.intensity=mode==='bright'?2.8:mode==='soft'?1.5:2.0;

@@ -38,6 +38,15 @@
         <div id="modelList" class="model-list"><div class="empty-list">Belum ada model.</div></div>
       </section>
 
+      <section class="side-section hierarchy-section">
+        <div class="section-heading"><span>MODEL STRUCTURE</span><span class="muted" id="objectCount">0 OBJECT</span></div>
+        <div class="tree-tools">
+          <button class="btn btn-small" id="expandTreeBtn">Expand all</button>
+          <button class="btn btn-small" id="collapseTreeBtn">Collapse all</button>
+        </div>
+        <div id="modelTree" class="model-tree"><div class="empty-list">Import model untuk melihat strukturnya.</div></div>
+      </section>
+
       <section class="side-section">
         <div class="section-heading">SCENE</div>
         <div class="control-row"><label for="bgColor">Background</label><input id="bgColor" type="color" value="#171c25"></div>
@@ -45,7 +54,11 @@
           <select id="lightMode"><option value="studio">Studio</option><option value="bright">Bright</option><option value="soft">Soft</option></select>
         </div>
         <label class="toggle-row"><span>Grid</span><input type="checkbox" id="gridToggle" checked><i></i></label>
-        <label class="toggle-row"><span>Axes</span><input type="checkbox" id="axesToggle"><i></i></label>
+        <div class="range-control"><label for="gridSize">Grid size <output id="gridSizeValue">100</output></label><input type="range" id="gridSize" min="20" max="200" step="10" value="100"></div>
+        <label class="toggle-row"><span>Axis X</span><input type="checkbox" id="axisXToggle" checked><i></i></label>
+        <label class="toggle-row"><span>Axis Y</span><input type="checkbox" id="axisYToggle" checked><i></i></label>
+        <label class="toggle-row"><span>Axis Z</span><input type="checkbox" id="axisZToggle" checked><i></i></label>
+        <div class="range-control"><label for="axisLength">Axis length <output id="axisLengthValue">10</output></label><input type="range" id="axisLength" min="1" max="50" step="1" value="10"></div>
       </section>
 
       <section class="side-section editor-section">
